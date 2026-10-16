@@ -1,0 +1,94 @@
+name: Publish Flatpak
+
+# Daily: build the newest published AbelNotes release if the site is behind.
+# A GitHub release goes public only after both stores approve the version, so
+# the Flatpak follows the same gate with no extra step.
+on:
+  schedule:
+    - cron: '23 5 * * *'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'App tag to build (vX.Y.Z); empty = latest release'
+        required: false
+      force:
+        description: 'Rebuild even if the site already has this version'
+        type: boolean
+        default: false
+      packaging_ref:
+        description: 'App commit whose flatpak/ to use; empty = the tag (or the packaging floor for older tags)'
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
+env:
+  SITE_URL: https://abelnotes.github.io/flatpak
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.v.outputs.tag }}
+      build: ${{ steps.v.outputs.build }}
+    steps:
+      - id: v
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INPUT_TAG: ${{ inputs.tag }}
+          FORCE: ${{ inputs.force }}
+        run: |
+          tag="${INPUT_TAG:-$(gh release view -R abelnotes/abelnotes --json tagName -q .tagName)}"
+          live="$(curl -fsS "$SITE_URL/version.txt" || true)"
+          echo "latest release: $tag, site: ${live:-none}"
+          build=false
+          if [ "$FORCE" = "true" ] || [ "v$live" != "$tag" ]; then build=true; fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "build=$build" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: check
+    if: needs.check.outputs.build == 'true'
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/flathub-infra/flatpak-github-actions:freedesktop-25.08@sha256:c91a88269eee8fcdd73ecf43064232fbebe27411f926f63f38bdf70c51f2ceae
+      options: --privileged
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Release notes
+        env:
+          TAG: ${{ needs.check.outputs.tag }}
+        run: |
+          curl -fsS "https://api.github.com/repos/abelnotes/abelnotes/releases/tags/$TAG" \
+            | python3 -c 'import json,sys; print(json.load(sys.stdin).get("body") or "")' > notes.md
+      - name: Build, sign, stage
+        env:
+          TAG: ${{ needs.check.outputs.tag }}
+          NOTES_FILE: notes.md
+          PACKAGING_REF: ${{ inputs.packaging_ref }}
+          GPG_PRIVATE_KEY: ${{ secrets.FLATPAK_GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.FLATPAK_GPG_PASSPHRASE }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_DESKTOP_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_DESKTOP_CLIENT_SECRET }}
+          LEAK_EXTRA: ${{ secrets.LEAK_PATTERNS }}
+        run: ci/build.sh
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
