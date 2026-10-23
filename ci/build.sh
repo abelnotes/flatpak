@@ -144,6 +144,7 @@ flatpak build-bundle --repo-url="$SITE_URL/repo/" \
   --gpg-keys="$OUT/abelnotes.gpg" "$W/repo" "$OUT/abelnotes.flatpak" "$APP" stable
 cp "$W/build-dir/files/share/icons/hicolor/512x512/apps/$APP.png" "$OUT/icon.png"
 sed -e "s#@VERSION@#$VERSION#g" -e "s#@SITE_URL@#$SITE_URL#g" -e "s#@FPR@#$FPR#g" site/index.html > "$OUT/index.html"
+cp -r site/fonts "$OUT/fonts"
 echo "$VERSION" > "$OUT/version.txt"
 
 say "Leak scan"

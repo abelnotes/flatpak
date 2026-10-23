@@ -3,68 +3,127 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>AbelNotes for Linux (Flatpak)</title>
+<title>AbelNotes for Linux</title>
+<meta name="description" content="Install AbelNotes on any Linux distribution with Flatpak. Signed repository, automatic updates.">
 <link rel="icon" href="icon.png">
 <style>
-  :root { --bg: #f4f1ea; --fg: #1f2a33; --muted: #5d6973; --card: #fbfaf7; --line: #ddd8cc; --accent: #2a7a9e; }
+  @font-face { font-family: "Instrument Sans"; src: url("fonts/InstrumentSans-Regular.ttf") format("truetype"); font-weight: 400; font-display: swap; }
+  @font-face { font-family: "Instrument Sans"; src: url("fonts/InstrumentSans-SemiBold.ttf") format("truetype"); font-weight: 600; font-display: swap; }
+  :root {
+    --paper: #FAF7F2; --surface: #FFFFFF; --ink: #22303A; --ink-soft: #5F7280;
+    --hairline: #DDE4E8; --brand: #2A7A9E; --brand-deep: #1E5D7A;
+    --void: #00202E; --void-deep: #00111A; --void-line: #14414F;
+    --chalk: #F4F7F8; --chalk-soft: #9FB8C4;
+    --mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  }
   @media (prefers-color-scheme: dark) {
-    :root { --bg: #14181c; --fg: #e8ecef; --muted: #9aa5ad; --card: #1c2228; --line: #2c343b; --accent: #5fb0d3; }
+    :root { --paper: #0B1A22; --surface: #102631; --ink: #E8EEF1; --ink-soft: #9FB8C4; --hairline: #1D3B48; --brand: #5FB0D3; --brand-deep: #8CCBE6; }
   }
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.55 system-ui, sans-serif; }
-  main { max-width: 640px; margin: 0 auto; padding: 48px 16px; }
-  header { display: flex; align-items: center; gap: 14px; margin-bottom: 8px; }
-  header img { width: 56px; height: 56px; }
-  h1 { font-size: 1.7rem; margin: 0; }
-  .muted { color: var(--muted); }
-  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 20px; margin: 20px 0; }
-  .btn { display: inline-block; background: var(--accent); color: #fff; text-decoration: none; font-weight: 600; padding: 12px 20px; border-radius: 10px; }
-  pre { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 12px; overflow-x: auto; font-size: 0.9rem; }
-  code { font-family: ui-monospace, monospace; }
-  h2 { font-size: 1.05rem; margin: 0 0 8px; }
-  a { color: var(--accent); }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font: 16px/1.6 "Instrument Sans", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  a { color: var(--brand); }
+  a:hover { color: var(--brand-deep); }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 0 16px; }
+
+  .hero { background: radial-gradient(120% 90% at 50% 0%, var(--void) 0%, var(--void-deep) 70%); color: var(--chalk); padding: 72px 0 96px; text-align: center; position: relative; }
+  .hero::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 48px; background: linear-gradient(to bottom, transparent, var(--paper)); }
+  .hero img { width: 96px; height: 96px; filter: drop-shadow(0 10px 30px rgba(42,122,158,.35)); }
+  .eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--chalk-soft); margin: 20px 0 10px; }
+  h1 { font-weight: 600; font-size: clamp(34px, 6vw, 52px); line-height: 1.05; letter-spacing: -.03em; margin: 0; }
+  .lead { color: var(--chalk-soft); font-size: 18px; max-width: 520px; margin: 16px auto 32px; }
+  .btn { display: inline-flex; align-items: center; gap: 10px; background: var(--chalk); color: var(--void-deep); text-decoration: none; font-weight: 600; font-size: 17px; padding: 15px 28px; border-radius: 999px; box-shadow: 0 8px 30px rgba(0,0,0,.35); transition: transform .15s ease, box-shadow .15s ease; }
+  .btn:hover { color: var(--void-deep); transform: translateY(-1px); box-shadow: 0 12px 36px rgba(0,0,0,.45); }
+  .btn svg { width: 18px; height: 18px; }
+  .meta { margin-top: 18px; font-size: 14px; color: var(--chalk-soft); }
+  .meta a { color: var(--chalk); }
+
+  section { margin: 48px 0; }
+  h2 { font-weight: 600; font-size: 22px; letter-spacing: -.015em; margin: 0 0 14px; }
+  .steps { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
+  .steps li { display: grid; grid-template-columns: 32px 1fr; gap: 14px; align-items: start; background: var(--surface); border: 1px solid var(--hairline); border-radius: 16px; padding: 16px 18px; }
+  .steps b { display: inline-flex; width: 32px; height: 32px; align-items: center; justify-content: center; border-radius: 50%; background: var(--brand); color: #fff; font-size: 15px; }
+  .steps p { margin: 4px 0 0; color: var(--ink-soft); }
+  .steps strong { font-weight: 600; color: var(--ink); }
+
+  .term { background: var(--void-deep); color: var(--chalk); border-radius: 16px; padding: 4px 4px 4px 18px; display: flex; align-items: center; gap: 10px; border: 1px solid var(--void-line); }
+  .term code { font-family: var(--mono); font-size: 14px; flex: 1; overflow-x: auto; white-space: nowrap; padding: 14px 0; }
+  .term code::before { content: "$ "; color: var(--chalk-soft); }
+  .term code { scrollbar-width: none; } .term code::-webkit-scrollbar { display: none; }
+  .copy { background: var(--void-line); color: var(--chalk); border: 0; border-radius: 12px; padding: 10px 14px; font: 600 14px "Instrument Sans", system-ui, sans-serif; cursor: pointer; flex-shrink: 0; }
+  .copy:hover { background: var(--brand); }
+  .note { color: var(--ink-soft); font-size: 15px; margin: 12px 2px 0; }
+  .note code, .steps code { font-family: var(--mono); font-size: 13.5px; background: var(--paper); border: 1px solid var(--hairline); border-radius: 6px; padding: 1px 6px; }
+
+  .rows { border-top: 1px solid var(--hairline); }
+  .rows a { display: grid; grid-template-columns: 1fr auto; gap: 4px 16px; padding: 16px 4px; border-bottom: 1px solid var(--hairline); text-decoration: none; color: var(--ink); }
+  .rows a:hover { background: var(--surface); }
+  .rows strong { font-weight: 600; }
+  .rows span { color: var(--ink-soft); font-size: 15px; }
+  .rows i { font-style: normal; font-family: var(--mono); font-size: 13px; color: var(--brand); grid-row: 1 / span 2; grid-column: 2; align-self: center; }
+
+  footer { border-top: 1px solid var(--hairline); padding: 28px 0 48px; color: var(--ink-soft); font-size: 14px; }
+  footer code { font-family: var(--mono); font-size: 12.5px; word-break: break-all; }
+  @media (max-width: 520px) { .rows i { display: none; } .rows a { grid-template-columns: 1fr; } .hero { padding: 56px 0 80px; } }
 </style>
 </head>
 <body>
-<main>
-  <header>
-    <img src="icon.png" alt="">
-    <div>
-      <h1>AbelNotes for Linux</h1>
-      <div class="muted">Flatpak · version @VERSION@ · updates arrive on their own</div>
-    </div>
-  </header>
-
-  <div class="card">
-    <h2>Install</h2>
-    <p>Both open in GNOME Software, KDE Discover or the Linux Mint Software
-      Manager. Adding the repository first lets your software app show
-      AbelNotes with its name, icon and screenshots, and deliver updates like
-      any other app.</p>
-    <p><a class="btn" href="abelnotes.flatpakrepo">1. Add the AbelNotes repository</a></p>
-    <p><a class="btn" href="abelnotes.flatpakref">2. Install AbelNotes</a></p>
-    <p class="muted">After step 1 you can also search for AbelNotes in your
-      software app instead.</p>
+<header class="hero">
+  <div class="wrap">
+    <img src="icon.png" alt="AbelNotes">
+    <div class="eyebrow">Flatpak · version @VERSION@</div>
+    <h1>AbelNotes for Linux</h1>
+    <p class="lead">Works on any distribution. Updates arrive through your software center, like every other app.</p>
+    <a class="btn" href="abelnotes.flatpakref">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/></svg>
+      Install AbelNotes
+    </a>
+    <div class="meta">Opens in GNOME Software, KDE Discover or Mint's Software Manager · <a href="https://abelnotes.app">abelnotes.app</a></div>
   </div>
+</header>
 
-  <div class="card">
+<main class="wrap">
+  <section>
+    <h2>How it works</h2>
+    <ol class="steps">
+      <li><b>1</b><div><strong>Click Install AbelNotes.</strong><p>Your browser downloads a small <code>.flatpakref</code> file. Open it.</p></div></li>
+      <li><b>2</b><div><strong>Confirm in your software center.</strong><p>It adds the signed AbelNotes repository and installs the app. The runtime comes from Flathub.</p></div></li>
+      <li><b>3</b><div><strong>That's it.</strong><p>New versions show up in your usual updates. Nothing else to do.</p></div></li>
+    </ol>
+  </section>
+
+  <section>
     <h2>From a terminal</h2>
-    <pre><code>flatpak install --user @SITE_URL@/abelnotes.flatpakref</code></pre>
-    <p class="muted">Fedora, Linux Mint and Pop!_OS have Flatpak already. On Ubuntu:
-      <code>sudo apt install flatpak gnome-software-plugin-flatpak</code>, then log out
-      and back in; the install button then opens in Software.</p>
-  </div>
+    <div class="term"><code id="cmd">flatpak install --user @SITE_URL@/abelnotes.flatpakref</code><button class="copy" type="button" data-copy="cmd">Copy</button></div>
+    <p class="note">Fedora, Linux Mint and Pop!_OS have Flatpak already. On Ubuntu, first run
+      <code>sudo apt install flatpak gnome-software-plugin-flatpak</code> and log out and back in.</p>
+  </section>
 
-  <div class="card">
-    <h2>Other downloads</h2>
-    <p><a href="abelnotes.flatpak">abelnotes.flatpak</a> — single-file bundle for
-      offline installs; it keeps updating from this repository, but software
-      apps list it without a description.<br>
-      <a href="https://github.com/abelnotes/abelnotes/releases/latest">.deb on GitHub</a> ·
-      <a href="https://abelnotes.app">abelnotes.app</a></p>
-    <p class="muted">Signed with key <code>@FPR@</code>
-      (<a href="abelnotes.gpg">abelnotes.gpg</a>).</p>
-  </div>
+  <section>
+    <h2>Other ways</h2>
+    <div class="rows">
+      <a href="abelnotes.flatpakrepo"><strong>Add the repository only</strong><span>Then search for AbelNotes in your software center; it shows the app page with screenshots.</span><i>.flatpakrepo →</i></a>
+      <a href="abelnotes.flatpak"><strong>Single-file bundle</strong><span>For offline installs. It keeps updating from this repository once online.</span><i>.flatpak →</i></a>
+      <a href="https://github.com/abelnotes/abelnotes/releases/latest"><strong>Debian / Ubuntu package</strong><span>A plain .deb from GitHub releases, without automatic updates.</span><i>.deb →</i></a>
+    </div>
+  </section>
+
+  <footer>
+    Packages are signed with key <code>@FPR@</code> (<a href="abelnotes.gpg">abelnotes.gpg</a>).
+    Built from the published release by <a href="https://github.com/abelnotes/flatpak">abelnotes/flatpak</a>.
+    AbelNotes is free software under the AGPL-3.0.
+  </footer>
 </main>
+<script>
+  document.querySelectorAll("[data-copy]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var text = document.getElementById(b.dataset.copy).textContent;
+      navigator.clipboard.writeText(text).then(function () {
+        b.textContent = "Copied";
+        setTimeout(function () { b.textContent = "Copy"; }, 1600);
+      });
+    });
+  });
+</script>
 </body>
 </html>
